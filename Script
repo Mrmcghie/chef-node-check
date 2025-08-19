@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# Chef Node Status and Update Script
+# This script checks knife status and runs chef-client on nodes that haven't checked in for more than 3 hours
+
+# Configuration
+LOG_DIR="/var/log/chef-updates"
+LOG_FILE="$LOG_DIR/chef-client-$(date +%Y%m%d-%H%M%S).log"
+THRESHOLD_HOURS=3
+
+# Create log directory if it doesn't exist
+mkdir -p "$LOG_DIR"
+
+# Function to convert time string to seconds
+time_to_seconds() {
+    local time_str="$1"
+    local total_seconds=0
+    
+    # Extract hours, minutes, seconds from formats like "3h25m30s" or "45m12s" or "30s"
+    if [[ $time_str =~ ([0-9]+)h ]]; then
+        hours=${BASH_REMATCH[1]}
+        total_seconds=$((total_seconds + hours * 3600))
+    fi
+    
+    if [[ $time_str =~ ([0-9]+)m ]]; then
+        minutes=${BASH_REMATCH[1]}
+        total_seconds=$((total_seconds + minutes * 60))
+    fi
+    
+    if [[ $time_str =~ ([0-9]+)s ]]; then
+        seconds=${BASH_REMATCH[1]}
+        total_seconds=$((total_seconds + seconds))
+    fi
+    
+    echo $total_seconds
+}
+
+echo "Starting Chef node status check at $(date)" | tee -a "$LOG_FILE"
+echo "Threshold: $THRESHOLD_HOURS hours" | tee -a "$LOG_FILE"
+echo "----------------------------------------" | tee -a "$LOG_FILE"
+
+# Get knife status output and parse it
+knife status | while read -r line; do
+    # Skip empty lines and headers
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*$ ]] && continue
+    
+    # Parse the knife status output
+    # Expected format: "X hours ago, node_name, platform version, fqdn, ip_address, run_list"
+    if [[ $line =~ ^([^,]+),.*vagrant@([^,]+) ]]; then
+        time_ago="${BASH_REMATCH[1]}"
+        server_info="${BASH_REMATCH[2]}"
+        
+        # Extract just the server/IP from server_info (in case there's extra info)
+        server=$(echo "$server_info" | awk '{print $1}')
+        
+        echo "Checking node: $server (last seen: $time_ago)" | tee -a "$LOG_FILE"
+        
+        # Convert time to seconds for comparison
+        time_seconds=$(time_to_seconds "$time_ago")
+        threshold_seconds=$((THRESHOLD_HOURS * 3600))
+        
+        if [ "$time_seconds" -gt "$threshold_seconds" ]; then
+            echo "Node $server is overdue (${time_ago}). Connecting to run chef-client..." | tee -a "$LOG_FILE"
+            
+            # SSH to the server and run chef-client
+            echo "Connecting to vagrant@$server..." | tee -a "$LOG_FILE"
+            
+            # Use SSH with options for interactive password and command execution
+            ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no vagrant@"$server" \
+                "echo 'Running chef-client on $server at \$(date)' && \
+                 sudo chef-client 2>&1" | tee -a "$LOG_FILE"
+            
+            ssh_exit_code=$?
+            
+            if [ $ssh_exit_code -eq 0 ]; then
+                echo "Successfully ran chef-client on $server" | tee -a "$LOG_FILE"
+            else
+                echo "Failed to run chef-client on $server (exit code: $ssh_exit_code)" | tee -a "$LOG_FILE"
+            fi
+            
+            echo "----------------------------------------" | tee -a "$LOG_FILE"
+        else
+            echo "Node $server is up to date (${time_ago})" | tee -a "$LOG_FILE"
+        fi
+    fi
+done
+
+echo "Chef node update process completed at $(date)" | tee -a "$LOG_FILE"
+echo "Log saved to: $LOG_FILE"
