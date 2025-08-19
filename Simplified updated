@@ -1,0 +1,119 @@
+#!/usr/bin/env ruby
+
+# Simple script to disable fapolicy on specified server classes
+# Edit the SERVER_CLASSES array below to specify which classes need fapolicy disabled
+
+# =============================================================================
+# CONFIGURATION - Edit this section
+# =============================================================================
+
+# Add your server classes here
+SERVER_CLASSES = [
+  'mq_server',
+  'websphere_mq', 
+  'ibm_mq',
+  'message_queue',
+  'jms_server'
+]
+
+# SSH user (change if different)
+SSH_USER = 'vagrant'
+
+# =============================================================================
+# Script starts here - no need to edit below
+# =============================================================================
+
+def log(message)
+  puts "[#{Time.now.strftime('%H:%M:%S')}] #{message}"
+end
+
+def get_servers_for_classes(classes)
+  all_servers = []
+  
+  classes.each do |server_class|
+    log("Searching for servers with role: #{server_class}")
+    
+    # Get servers using knife search
+    cmd = "knife search node 'role:#{server_class}' -i 2>/dev/null"
+    output = `#{cmd}`.strip
+    
+    if $?.success? && !output.empty?
+      servers = output.split("\n").map(&:strip).reject(&:empty?)
+      log("Found #{servers.length} servers for #{server_class}: #{servers.join(', ')}")
+      all_servers.concat(servers)
+    else
+      log("No servers found for role: #{server_class}")
+    end
+  end
+  
+  all_servers.uniq
+end
+
+def disable_fapolicy_on_server(server)
+  log("Disabling fapolicy on #{server}")
+  
+  commands = [
+    "sudo systemctl stop fapolicyd",
+    "sudo systemctl disable fapolicyd",
+    "sudo systemctl mask fapolicyd"
+  ]
+  
+  commands.each do |cmd|
+    ssh_cmd = "ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no #{SSH_USER}@#{server} '#{cmd}' 2>/dev/null"
+    result = system(ssh_cmd)
+    
+    if result
+      log("  ✓ #{cmd}")
+    else
+      log("  ✗ #{cmd} failed")
+    end
+  end
+  
+  # Check if it's actually stopped
+  check_cmd = "ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no #{SSH_USER}@#{server} 'sudo systemctl is-active fapolicyd' 2>/dev/null"
+  status = `#{check_cmd}`.strip
+  
+  if status == 'inactive' || status == 'unknown'
+    log("  ✓ fapolicy successfully disabled on #{server}")
+    return true
+  else
+    log("  ✗ fapolicy may still be active on #{server}")
+    return false
+  end
+end
+
+# Main execution
+log("Starting fapolicy disable for server classes: #{SERVER_CLASSES.join(', ')}")
+
+servers = get_servers_for_classes(SERVER_CLASSES)
+
+if servers.empty?
+  log("No servers found for any specified classes")
+  exit 1
+end
+
+log("Found #{servers.length} total servers to process")
+
+successful = 0
+failed = 0
+
+servers.each do |server|
+  if disable_fapolicy_on_server(server)
+    successful += 1
+  else
+    failed += 1
+  end
+  sleep 1  # Brief pause between servers
+end
+
+log("=== SUMMARY ===")
+log("Total servers: #{servers.length}")
+log("Successful: #{successful}")
+log("Failed: #{failed}")
+
+if failed > 0
+  log("Check failed servers manually")
+  exit 1
+else
+  log("All servers processed successfully!")
+end
