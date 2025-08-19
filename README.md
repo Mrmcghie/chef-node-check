@@ -1,0 +1,1 @@
+# chef-node-check
