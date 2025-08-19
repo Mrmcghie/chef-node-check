@@ -1,3 +1,5 @@
+https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/security_hardening/assembly_blocking-and-allowing-applications-using-fapolicyd_security-hardening#introduction-to-fapolicyd_assembly_blocking-and-allowing-applications-using-fapolicyd
+
 Standalone Script Usage:
 bash# Disable fapolicy on all MQ servers
 ./fapolicy_manager.rb --mq-only
