@@ -1,0 +1,295 @@
+# Linux Network Connection Commands Dictionary
+
+## Basic Connectivity Testing
+
+### `ping`
+**Purpose**: Test basic network connectivity to a host
+```bash
+ping google.com
+ping -c 4 8.8.8.8          # Send only 4 packets
+ping -i 2 192.168.1.1       # 2-second intervals
+```
+
+### `traceroute` / `tracepath`
+**Purpose**: Trace the path packets take to reach a destination
+```bash
+traceroute google.com
+tracepath google.com        # Alternative, doesn't require root
+mtr google.com              # Continuous trace with statistics
+```
+
+### `telnet`
+**Purpose**: Test TCP port connectivity
+```bash
+telnet google.com 80
+telnet 192.168.1.1 22
+```
+
+### `nc` (netcat)
+**Purpose**: Swiss army knife for network connections
+```bash
+nc -zv google.com 80        # Test port connectivity
+nc -l 8080                  # Listen on port 8080
+nc -u google.com 53         # UDP connection test
+```
+
+## Port and Socket Information
+
+### `netstat`
+**Purpose**: Display network connections, routing tables, interface statistics
+```bash
+netstat -tuln               # All listening ports (TCP/UDP)
+netstat -tupln              # Include process names
+netstat -r                  # Routing table
+netstat -i                  # Interface statistics
+netstat -an                 # All connections
+```
+
+### `ss`
+**Purpose**: Modern replacement for netstat
+```bash
+ss -tuln                    # Listening ports
+ss -tupln                   # With process info
+ss -a                       # All sockets
+ss -s                       # Socket statistics summary
+ss -p                       # Show processes
+```
+
+### `lsof`
+**Purpose**: List open files (including network connections)
+```bash
+lsof -i                     # All network connections
+lsof -i :80                 # Connections on port 80
+lsof -i tcp                 # TCP connections only
+lsof -i udp                 # UDP connections only
+lsof -u username            # Network connections by user
+```
+
+### `nmap`
+**Purpose**: Network discovery and port scanning
+```bash
+nmap google.com             # Basic port scan
+nmap -p 80,443 google.com   # Specific ports
+nmap -sn 192.168.1.0/24     # Network discovery
+nmap -O google.com          # OS detection
+```
+
+## Network Interface Information
+
+### `ip`
+**Purpose**: Modern network configuration tool
+```bash
+ip addr show                # Show all interfaces
+ip link show                # Link layer information
+ip route show               # Routing table
+ip neigh show               # ARP table
+ip -s link                  # Interface statistics
+```
+
+### `ifconfig`
+**Purpose**: Legacy interface configuration (still widely used)
+```bash
+ifconfig                    # All interfaces
+ifconfig eth0               # Specific interface
+ifconfig -a                 # All interfaces (including down)
+```
+
+### `iwconfig`
+**Purpose**: Wireless interface configuration
+```bash
+iwconfig                    # Wireless interfaces
+iwconfig wlan0              # Specific wireless interface
+```
+
+## DNS and Hostname Resolution
+
+### `nslookup`
+**Purpose**: DNS lookup utility
+```bash
+nslookup google.com
+nslookup google.com 8.8.8.8 # Using specific DNS server
+```
+
+### `dig`
+**Purpose**: Advanced DNS lookup tool
+```bash
+dig google.com              # Basic lookup
+dig @8.8.8.8 google.com     # Using specific DNS server
+dig google.com MX           # Mail exchange records
+dig +short google.com       # Brief output
+dig -x 8.8.8.8             # Reverse DNS lookup
+```
+
+### `host`
+**Purpose**: Simple DNS lookup
+```bash
+host google.com
+host 8.8.8.8               # Reverse lookup
+```
+
+## ARP and Network Discovery
+
+### `arp`
+**Purpose**: Display/modify ARP table
+```bash
+arp -a                      # Show ARP table
+arp -n                      # Show without resolving names
+arp 192.168.1.1             # Specific host
+```
+
+### `arping`
+**Purpose**: Send ARP requests
+```bash
+arping 192.168.1.1
+arping -c 3 192.168.1.1     # Send 3 requests
+```
+
+## Bandwidth and Performance Testing
+
+### `iperf` / `iperf3`
+**Purpose**: Network performance testing
+```bash
+# Server side:
+iperf3 -s                   # Start server
+# Client side:
+iperf3 -c server_ip         # Connect to server
+```
+
+### `wget` / `curl`
+**Purpose**: HTTP/HTTPS connectivity testing
+```bash
+wget -O /dev/null http://google.com
+curl -I http://google.com   # Headers only
+curl -o /dev/null -s -w "%{time_total}" http://google.com
+```
+
+### `speedtest-cli`
+**Purpose**: Internet speed testing
+```bash
+speedtest-cli
+speedtest-cli --simple      # Simple output
+```
+
+## Firewall and Security
+
+### `ufw`
+**Purpose**: Uncomplicated Firewall (Ubuntu/Debian)
+```bash
+ufw status                  # Check firewall status
+ufw status verbose          # Detailed status
+```
+
+### `iptables`
+**Purpose**: Linux firewall administration
+```bash
+iptables -L                 # List rules
+iptables -L -n              # List without resolving names
+iptables -L -v              # Verbose output
+```
+
+### `firewall-cmd`
+**Purpose**: Firewall management (RHEL/CentOS/Fedora)
+```bash
+firewall-cmd --list-all
+firewall-cmd --list-ports
+firewall-cmd --get-active-zones
+```
+
+## System Network Information
+
+### `hostname`
+**Purpose**: Display or set system hostname
+```bash
+hostname                    # Show hostname
+hostname -I                 # Show IP addresses
+hostname -f                 # Show FQDN
+```
+
+### `who` / `w`
+**Purpose**: Show logged-in users (including network sessions)
+```bash
+w                          # Detailed user info
+who                        # Basic user info
+```
+
+### `netplan` (Ubuntu 18.04+)
+**Purpose**: Network configuration
+```bash
+netplan status             # Show network status
+netplan get                # Show current config
+```
+
+## Advanced Network Analysis
+
+### `tcpdump`
+**Purpose**: Packet capture and analysis
+```bash
+tcpdump -i eth0            # Capture on eth0
+tcpdump host google.com    # Capture traffic to/from host
+tcpdump port 80            # Capture HTTP traffic
+```
+
+### `wireshark` / `tshark`
+**Purpose**: Advanced packet analysis
+```bash
+tshark -i eth0             # Command-line Wireshark
+tshark -i eth0 -c 100      # Capture 100 packets
+```
+
+### `ethtool`
+**Purpose**: Ethernet device settings
+```bash
+ethtool eth0               # Interface details
+ethtool -i eth0            # Driver information
+ethtool -S eth0            # Statistics
+```
+
+## Quick Reference Commands
+
+### Connection Status Summary
+```bash
+# Quick network overview
+ip addr show && ip route show && ss -tuln
+```
+
+### Comprehensive Network Check
+```bash
+# Full network diagnostic
+ping -c 3 8.8.8.8 && \
+dig google.com && \
+ss -tuln && \
+ip route show
+```
+
+### Port Connectivity Test
+```bash
+# Test if service is reachable
+timeout 5 bash -c "</dev/tcp/google.com/80" && echo "Port 80 open"
+```
+
+## Common Use Cases
+
+**Check if internet is working:**
+```bash
+ping -c 3 8.8.8.8 || ping -c 3 1.1.1.1
+```
+
+**Find what's using a specific port:**
+```bash
+lsof -i :80 || ss -tulpn | grep :80
+```
+
+**Test DNS resolution:**
+```bash
+dig +short google.com || nslookup google.com
+```
+
+**Check local network connectivity:**
+```bash
+ping -c 3 $(ip route | grep default | awk '{print $3}')
+```
+
+**Monitor network connections in real-time:**
+```bash
+watch -n 1 'ss -tuln'
+```
