@@ -1,0 +1,372 @@
+#!/usr/bin/env ruby
+
+# Define the server classes as a constant
+SERVER_CLASSES = %w[NBC FOX BET ABC]
+
+# Helper function to simulate logging
+def log(message)
+  puts message
+end
+
+# Define a function to disable the fapolicy service on a single server
+def disable_fapolicy_on_server(server)
+  log("Disabling fapolicy on #{server}")
+  commands = [
+    'sudo systemctl stop fapolicyd',
+    'sudo systemctl disable fapolicyd',
+    'sudo systemctl mask fapolicyd',
+    'sudo systemctl status fapolicyd'
+  ]
+
+  # In a real script, you would execute these commands and check for success
+  # For now, we'll just simulate success
+  log("Successfully disabled fapolicy on #{server}")
+  true
+rescue StandardError => e
+  log("Error disabling fapolicy on #{server}: #{e.message}")
+  false
+end
+
+# Define a function to iterate over a list of server classes and disable fapolicy
+def process_servers_for_classes(classes)
+  successful = 0
+  failed = 0
+
+  classes.each do |server|
+    if disable_fapolicy_on_server(server)
+      successful += 1
+    else
+      failed += 1
+    end
+  end
+
+  log("Summary: #{successful} servers processed successfully, #{failed} servers failed.")
+end
+
+# Example usage
+Process_servers_for_classes(SERVER_CLASSES) 
+-----------------------------------------------------------------------------------------------------------------------
+
+# frozen_string_literal: true
+
+# Cookbook Name:: fapolicy_management
+# Recipe:: disable_fapolicy
+# Description:: Disables fapolicy service on specified server classes
+
+# Define the server classes that need fapolicy disabled
+server_classes = %w[NBC FOX BET ABC].freeze
+
+# Helper method for consistent logging
+def chef_log(message, level = :info)
+  Chef::Log.send(level, message)
+end
+
+# Custom resource to disable fapolicy on a server class
+define :disable_fapolicy_service do
+  server_class = params[:name]
+
+  chef_log("Starting fapolicy disable process for server class: #{server_class}")
+
+  # Stop the fapolicyd service
+  service 'fapolicyd' do
+    action :stop
+    only_if 'systemctl is-active fapolicyd'
+    notifies :run, 'ruby_block[log_stop_success]', :immediately
+  end
+
+  # Disable the fapolicyd service
+  service 'fapolicyd' do
+    action :disable
+    only_if 'systemctl is-enabled fapolicyd'
+    notifies :run, 'ruby_block[log_disable_success]', :immediately
+  end
+
+  # Mask the fapolicyd service to prevent accidental starts
+  execute 'mask_fapolicyd' do
+    command 'systemctl mask fapolicyd'
+    only_if 'systemctl is-enabled fapolicyd 2>/dev/null || systemctl is-active fapolicyd 2>/dev/null'
+    notifies :run, 'ruby_block[log_mask_success]', :immediately
+  end
+
+  # Verification step
+  execute 'verify_fapolicyd_status' do
+    command 'systemctl status fapolicyd'
+    ignore_failure true
+    notifies :run, 'ruby_block[log_verification]', :immediately
+  end
+
+  # Logging blocks for notifications
+  ruby_block 'log_stop_success' do
+    block do
+      chef_log("Successfully stopped fapolicyd service for #{server_class}")
+    end
+    action :nothing
+  end
+
+  ruby_block 'log_disable_success' do
+    block do
+      chef_log("Successfully disabled fapolicyd service for #{server_class}")
+    end
+    action :nothing
+  end
+
+  ruby_block 'log_mask_success' do
+    block do
+      chef_log("Successfully masked fapolicyd service for #{server_class}")
+    end
+    action :nothing
+  end
+
+  ruby_block 'log_verification' do
+    block do
+      chef_log("Verification complete for fapolicyd service on #{server_class}")
+    end
+    action :nothing
+  end
+end
+
+# Process each server class
+server_classes.each do |server_class|
+  disable_fapolicy_service server_class do
+    action :create
+  end
+end
+
+# Final summary log
+ruby_block 'process_summary' do
+  block do
+    chef_log("Fapolicy disable process completed for server classes: #{server_classes.join(', ')}")
+  end
+end 
+
+-------------------------------------------------------------------------v3-----------------------
+# Cookbook Name:: fapolicy_management
+# Recipe:: disable_fapolicy
+# Description:: Disables fapolicy service on specified server classes
+
+# Define the server classes that need fapolicy disabled
+server_classes = %w[NBC FOX BET ABC]
+
+# Helper method for consistent logging
+def chef_log(message, level = :info)
+  Chef::Log.send(level, message)
+end
+
+# Custom resource to disable fapolicy on a server class
+define :disable_fapolicy_service do
+  server_class = params[:name]
+ 
+  chef_log("Starting fapolicy disable process for server class: #{server_class}")
+
+  # Stop the fapolicyd service
+  service 'fapolicyd' do
+    action :stop
+    only_if 'systemctl is-active fapolicyd'
+    notifies :run, 'ruby_block[log_stop_success]', :immediately
+  end
+
+  # Disable the fapolicyd service
+  service 'fapolicyd' do
+    action :disable
+    only_if 'systemctl is-enabled fapolicyd'
+    notifies :run, 'ruby_block[log_disable_success]', :immediately
+  end
+
+  # Mask the fapolicyd service to prevent accidental starts
+  execute 'mask_fapolicyd' do
+    command 'systemctl mask fapolicyd'
+    only_if 'systemctl is-enabled fapolicyd 2>/dev/null || systemctl is-active fapolicyd 2>/dev/null'
+    notifies :run, 'ruby_block[log_mask_success]', :immediately
+  end
+
+  # Verification step
+  execute 'verify_fapolicyd_status' do
+    command 'systemctl status fapolicyd'
+    ignore_failure true
+    notifies :run, 'ruby_block[log_verification]', :immediately
+  end
+
+  # Logging blocks for notifications
+  ruby_block 'log_stop_success' do
+    block do
+      chef_log("Successfully stopped fapolicyd service for #{server_class}")
+    end
+    action :nothing
+  end
+
+  ruby_block 'log_disable_success' do
+    block do
+      chef_log("Successfully disabled fapolicyd service for #{server_class}")
+    end
+    action :nothing
+  end
+
+  ruby_block 'log_mask_success' do
+    block do
+      chef_log("Successfully masked fapolicyd service for #{server_class}")
+    end
+    action :nothing
+  end
+
+  ruby_block 'log_verification' do
+    block do
+      chef_log("Verification complete for fapolicyd service on #{server_class}")
+    end
+    action :nothing
+  end
+end
+
+# Process each server class
+server_classes.each do |server_class|
+  disable_fapolicy_service server_class do
+    action :create
+  end
+end
+
+# Final summary log
+ruby_block 'process_summary' do
+  block do
+    chef_log("Fapolicy disable process completed for server classes: #{server_classes.join(', ')}")
+  end
+End 
+------------------------------v2
+#!/usr/bin/env ruby
+
+# Define the server classes as a constant
+SERVER_CLASSES = %w[NBC FOX BET ABC]
+
+# Helper function to simulate logging
+def log(message)
+  puts message
+end
+
+# Define a function to disable the fapolicy service on a single server
+def disable_fapolicy_on_server(server)
+  log("Disabling fapolicy on #{server}")
+  commands = [
+    'sudo systemctl stop fapolicyd',
+    'sudo systemctl disable fapolicyd',
+    'sudo systemctl mask fapolicyd',
+    'sudo systemctl status fapolicyd'
+  ]
+
+  # In a real script, you would execute these commands and check for success
+  # For now, we'll just simulate success
+  log("Successfully disabled fapolicy on #{server}")
+  true
+rescue StandardError => e
+  log("Error disabling fapolicy on #{server}: #{e.message}")
+  false
+end
+
+# Define a function to iterate over a list of server classes and disable fapolicy
+def process_servers_for_classes(classes)
+  successful = 0
+  failed = 0
+
+  classes.each do |server|
+    if disable_fapolicy_on_server(server)
+      successful += 1
+    else
+      failed += 1
+    end
+  end
+
+  log("Summary: #{successful} servers processed successfully, #{failed} servers failed.")
+end
+
+# Example usage
+process_servers_for_classes(SERVER_CLASSES)
+-------v4
+
+# frozen_string_literal: true
+
+# Cookbook Name:: fapolicy_management
+# Recipe:: disable_fapolicy
+# Description:: Disables fapolicy service on specified server classes
+
+# Define the server classes that need fapolicy disabled
+server_classes = %w[NBC FOX BET ABC].freeze
+
+# Helper method for consistent logging
+def chef_log(message, level = :info)
+  Chef::Log.send(level, message)
+end
+
+# Custom resource to disable fapolicy on a server class
+define :disable_fapolicy_service do
+  server_class = params[:name]
+
+  chef_log("Starting fapolicy disable process for server class: #{server_class}")
+
+  # Stop the fapolicyd service
+  service 'fapolicyd' do
+    action :stop
+    only_if 'systemctl is-active fapolicyd'
+    notifies :run, 'ruby_block[log_stop_success]', :immediately
+  end
+
+  # Disable the fapolicyd service
+  service 'fapolicyd' do
+    action :disable
+    only_if 'systemctl is-enabled fapolicyd'
+    notifies :run, 'ruby_block[log_disable_success]', :immediately
+  end
+
+  # Mask the fapolicyd service to prevent accidental starts
+  execute 'mask_fapolicyd' do
+    command 'systemctl mask fapolicyd'
+    only_if 'systemctl is-enabled fapolicyd 2>/dev/null || systemctl is-active fapolicyd 2>/dev/null'
+    notifies :run, 'ruby_block[log_mask_success]', :immediately
+  end
+
+  # Verification step
+  execute 'verify_fapolicyd_status' do
+    command 'systemctl status fapolicyd'
+    ignore_failure true
+    notifies :run, 'ruby_block[log_verification]', :immediately
+  end
+
+  # Logging blocks for notifications
+  ruby_block 'log_stop_success' do
+    block do
+      chef_log("Successfully stopped fapolicyd service for #{server_class}")
+    end
+    action :nothing
+  end
+
+  ruby_block 'log_disable_success' do
+    block do
+      chef_log("Successfully disabled fapolicyd service for #{server_class}")
+    end
+    action :nothing
+  end
+
+  ruby_block 'log_mask_success' do
+    block do
+      chef_log("Successfully masked fapolicyd service for #{server_class}")
+    end
+    action :nothing
+  end
+
+  ruby_block 'log_verification' do
+    block do
+      chef_log("Verification complete for fapolicyd service on #{server_class}")
+    end
+    action :nothing
+  end
+end
+
+# Process each server class
+server_classes.each do |server_class|
+  disable_fapolicy_service server_class do
+    action :create
+  end
+end
+
+# Final summary log
+ruby_block 'process_summary' do
+  block do
+    chef_log("Fapolicy disable process completed for server classes: #{server_classes.join(', ')}")
+  end
+end
