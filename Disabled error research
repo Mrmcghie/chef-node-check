@@ -1,0 +1,53 @@
+To properly define a resource like disable_fapolicy_service in another Chef cookbook, you can use a custom resource. This is the modern and recommended way to create reusable blocks of Chef code.
+Here are the steps to define a custom resource:
+1. Create the Custom Resource File
+In your cookbook (let's call it fapolicy_cookbook), you'll create a new directory and file structure: resources/disable_fapolicy_service.rb.
+ * fapolicy_cookbook/
+   * resources/
+     * disable_fapolicy_service.rb
+   * metadata.rb
+   * ... (other cookbook files)
+2. Write the Custom Resource Code
+Inside the disable_fapolicy_service.rb file, you define the resource's properties and actions.
+# fapolicy_cookbook/resources/disable_fapolicy_service.rb
+
+# The name of the resource (matches the file name)
+resource_name :disable_fapolicy_service
+
+# Define the default action for the resource
+default_action :run
+
+# Define any properties the resource takes (e.g., a name)
+property :name, String, name_property: true
+
+# Define the :run action
+action :run do
+  # This is where you put the actual code to disable the service.
+  # Use Chef's built-in resources to perform the work.
+
+  # Example using the 'service' resource:
+  service 'fapolicyd' do
+    action :stop
+  end
+
+  service 'fapolicyd' do
+    action :disable
+  end
+end
+
+3. Use the Custom Resource
+Once the custom resource is defined and your cookbooks are properly configured, you can call it from any recipe that depends on fapolicy_cookbook.
+In your main cookbook's metadata.rb:
+# my_main_cookbook/metadata.rb
+name 'my_main_cookbook'
+version '0.1.0'
+
+# Declare the dependency on the cookbook containing the custom resource
+depends 'fapolicy_cookbook'
+
+In your main cookbook's recipe (my_main_cookbook/recipes/default.rb):
+# my_main_cookbook/recipes/default.rb
+
+# Call the custom resource by its name.
+disable_fapolicy_service 'disable the fapolicy daemon'
+
