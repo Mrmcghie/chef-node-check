@@ -1,0 +1,29 @@
+You can define the custom resource within your existing cookbook without creating a separate one. Just follow the same file structure:
+ * Create the resource directory and file: Inside your current cookbook, create a resources directory and then a file named after your resource. For example, if your cookbook is called my_app, the path would be my_app/resources/disable_fapolicy_service.rb.
+ * Define the custom resource: Inside that file, write the custom resource code. This code will contain the properties and actions that define what your resource does.
+Here is the exact code for the file my_app/resources/disable_fapolicy_service.rb:
+# my_app/resources/disable_fapolicy_service.rb
+
+# Set the resource's name. It's good practice to match the file name.
+resource_name :disable_fapolicy_service
+
+# Define a default action.
+default_action :run
+
+# Define the 'run' action, which contains the logic.
+action :run do
+  # This block contains the actual Chef code to disable the service.
+  # Use built-in resources like 'service' to perform the work.
+  service 'fapolicyd' do
+    action [:stop, :disable]
+  end
+end
+
+ * Use the resource in your recipe: Now you can call the custom resource from any recipe within the same cookbook. Chef will automatically load it.
+<!-- end list -->
+# my_app/recipes/default.rb
+
+# Use your custom resource just like a built-in one.
+disable_fapolicy_service 'disable the fapolicy daemon'
+
+This approach keeps all the code related to your application in a single cookbook while still giving you the benefits of a reusable and clean resource definition.
