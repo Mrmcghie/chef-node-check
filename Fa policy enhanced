@@ -1,0 +1,128 @@
+To implement a Chef recipe that only stops fapolicyd on specific server classes, you can use conditional logic within your recipe. This is a standard and powerful feature of the Chef Infra Language, which is based on Ruby. The most common way to do this is by checking the node object's run list or attributes.
+Method 1: Check the Run List 🧑‍🍳
+The most robust way is to check if the node has a specific role or recipe in its run list that identifies it as an MQM server. This approach is highly recommended as it ties the action directly to the server's purpose as defined in your Chef infrastructure.
+You can use the if statement to check for a role or recipe.
+# In a recipe, e.g., 'mymq_prereq::default'
+
+# Check if the node's run_list includes the 'role[mqm_server]' role
+if node.run_list.roles.include?('mqm_server')
+  
+  # Or, check if the run_list includes the 'mymq::install' recipe
+  # if node.run_list.expand(node.chef_environment).recipes.include?('mymq::install')
+
+  service 'fapolicyd' do
+    action :stop
+  end
+
+end
+
+Explanation:
+ * node.run_list: This object provides access to the roles and recipes assigned to the node.
+ * roles.include?('mqm_server'): This checks if the mqm_server role is present in the node's run list. You'll need to make sure this role is correctly assigned to your MQM server nodes.
+Method 2: Check Node Attributes 📝
+Another effective method is to use a node attribute to identify a server class. You can set this attribute on the node, in a role, or in an environment file.
+1. Set the Attribute:
+First, in the relevant role or environment file for your MQM servers, define a custom attribute.
+// Example: roles/mqm_server.json
+
+{
+  "name": "mqm_server",
+  "description": "A role for IBM MQM servers",
+  "json_class": "Chef::Role",
+  "chef_type": "role",
+  "default_attributes": {
+    "server_class": "mqm"
+  },
+  "run_list": [
+    "recipe[mymq_prereq]"
+  ]
+}
+
+2. Use the Attribute in the Recipe:
+Now, in your Chef recipe, you can use a conditional statement to check for this attribute.
+# In a recipe, e.g., 'mymq_prereq::default'
+
+if node['server_class'] == 'mqm'
+  service 'fapolicyd' do
+    action :stop
+  end
+
+
+
+
+end
+
+Explanation:
+ * node['server_class']: This accesses the attribute named server_class from the node object.
+ * 'mqm': This is the value you set in the role file.
+This approach is flexible and can be used to control any number of actions based on a server's class or function.
+
+From the provided search results, the most direct and common way to temporarily stop the fapolicyd service is by using the systemctl command.
+The other options you mentioned do not stop the service:
+ * fapolicyd-cli --file add: This command is used to add specific files to the fapolicyd trust database, essentially "whitelisting" them. It doesn't stop the service; in fact, you'd typically run fapolicyd-cli --update afterward to notify the active daemon of the change.
+ * fapolicyd permissive mode: This is a mode of operation for fapolicyd, not a command. You enable it by editing the /etc/fapolicyd/fapolicyd.conf file and setting permissive = 1. In this mode, fapolicyd allows all actions that would normally be blocked, but it continues to audit and log them. While it effectively "stops" the blocking, it does not stop the service itself from running. It's often used for debugging and building a rule set.
+Therefore, the correct command to temporarily stop the service is:
+ * systemctl stop fapolicyd
+
+service 'fapolicyd' do
+  action :stop
+end
+
+execute 'stop fapolicyd service' do
+  command 'systemctl stop fapolicyd'
+  action :run
+  only_if 'systemctl is-active fapolicyd'
+end
+To implement a Chef recipe that only stops fapolicyd on specific server classes, you can use conditional logic within your recipe. This is a standard and powerful feature of the Chef Infra Language, which is based on Ruby. The most common way to do this is by checking the node object's run list or attributes.
+Method 1: Check the Run List 🧑‍🍳
+The most robust way is to check if the node has a specific role or recipe in its run list that identifies it as an MQM server. This approach is highly recommended as it ties the action directly to the server's purpose as defined in your Chef infrastructure.
+You can use the if statement to check for a role or recipe.
+
+# In a recipe, e.g., 'mymq_prereq::default'
+
+# Check if the node's run_list includes the 'role[mqm_server]' role
+if node.run_list.roles.include?('mqm_server')
+  
+  # Or, check if the run_list includes the 'mymq::install' recipe
+  # if node.run_list.expand(node.chef_environment).recipes.include?('mymq::install')
+
+  service 'fapolicyd' do
+    action :stop
+  end
+
+end
+
+Explanation:
+node.run_list: This object provides access to the roles and recipes assigned to the node.
+roles.include?('mqm_server'): This checks if the mqm_server role is present in the node's run list. You'll need to make sure this role is correctly assigned to your MQM server nodes.
+Method 2: Check Node Attributes 📝
+Another effective method is to use a node attribute to identify a server class. You can set this attribute on the node, in a role, or in an environment file.
+1. Set the Attribute:
+First, in the relevant role or environment file for your MQM servers, define a custom attribute.
+
+// Example: roles/mqm_server.json
+
+{
+  "name": "mqm_server",
+  "description": "A role for IBM MQM servers",
+  "json_class": "Chef::Role",
+  "chef_type": "role",
+  "default_attributes": {
+    "server_class": "mqm"
+  },
+  "run_list": [
+    "recipe[mymq_prereq]"
+  ]
+}
+
+
+Use the Attribute in the Recipe:
+Now, in your Chef recipe, you can use a conditional statement to check for this attribute.
+
+# In a recipe, e.g., 'mymq_prereq::default'
+
+if node['server_class'] == 'mqm'
+  service 'fapolicyd' do
+    action :stop
+  end
+end
